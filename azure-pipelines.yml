@@ -1,0 +1,67 @@
+# ASP.NET Core
+
+# Build and test ASP.NET Core projects targeting .NET Core.
+# Add steps that run tests, create a NuGet package, deploy, and more:
+# https://docs.microsoft.com/azure/devops/pipelines/languages/dotnet-core
+
+trigger:
+- main
+
+pool:
+  name: Desktop
+
+variables:
+  buildConfiguration: 'Release'
+
+steps:
+- task: UseDotNet@2
+
+  inputs:
+    packageType: 'sdk'
+    version:
+    includePreviewVersions: true
+- task: DotNetCoreCLI@2
+  inputs:
+    command: 'restore'
+    projects: 'ImpuestosVehiculos/ImpuestosVehiculos/*.csproj'
+    feedsToUse: 'select'
+- task: DotNetCoreCLI@2
+  inputs:
+    command: 'build'
+    projects: 'ImpuestosVehiculos/ImpuestosVehiculos/*.csproj'
+    arguments: '--configuration $(buildConfiguration) --no-restore'
+    workingDirectory: '$(System.DefaultWorkingDirectory)/ImpuestosVehiculos/ImpuestosVehiculos'
+
+- task: PublishBuildArtifacts@1
+  inputs:
+    PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+    ArtifactName: 'drop'
+    publishLocation: 'Container'
+- task: PublishBuildArtifacts@1
+  displayName: 'Publish Artifact'
+  inputs:
+    PathtoPublish: '$(build.artifactstagingdirectory)'
+    
+
+
+- task: DotNetCoreCLI@2
+  inputs:
+    command: 'restore'
+    projects: 'ImpuestosVehiculos/ResourceAPI/*.csproj'
+    feedsToUse: 'select'
+- task: DotNetCoreCLI@2
+  inputs:
+    command: 'build'
+    projects: 'ImpuestosVehiculos/ResourceAPI/*.csproj'
+    arguments: '--configuration $(buildConfiguration) --no-restore'
+    workingDirectory: '$(System.DefaultWorkingDirectory)/ImpuestosVehiculos/ResourceAPI/'
+- task: PublishBuildArtifacts@1
+  inputs:
+    PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+    ArtifactName: 'drop'
+    publishLocation: 'Container'
+- task: PublishBuildArtifacts@1
+  displayName: 'Publish Artifact'
+  inputs:
+    PathtoPublish: '$(build.artifactstagingdirectory)'
+    

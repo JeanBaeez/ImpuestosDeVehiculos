@@ -1,0 +1,282 @@
+@page "/dropdown"
+@inject HttpClient Http
+@using Data
+@using System.Collections.Generic
+@using System.Threading
+@using Syncfusion.Blazor.Buttons
+@using Syncfusion.Blazor.Spinner
+@using ResourceAPI
+
+<div class="container">
+
+    <div class="form-group"
+         style="border: 2px; border-radius: 6px; border-width: thick; padding-top: 20em; padding-left: 25em;">
+        <div class="row">
+
+            <div class="col" style="padding:10px;">
+                <SfDropDownList TItem="string" @ref="@MarcaElement" TValue="string" AllowFiltering="true" Width="150" PopupHeight="500px"
+                                Placeholder="Seleccione La Marca" DataSource="@Marca" @bind-Value="@MarcaValue">
+                    <DropDownListEvents TItem="string" TValue="string" ValueChange="ChangeMarca"></DropDownListEvents>
+
+                </SfDropDownList>
+            </div>
+            <div class="col" style="padding:10px;">
+                <SfDropDownList Enabled="@ModeloEnabled" @ref="@ModeloElement" AllowFiltering="true" PopupHeight="500px" TValue="string" TItem="string"
+                                DataSource="@Modelo" @bind-Value="ModeloValue" Placeholder="Seleccione el Modelo">
+                    <DropDownListEvents TItem="string" TValue="string" ValueChange="ChangeModelo"></DropDownListEvents>
+                </SfDropDownList>
+            </div>
+        </div>
+        <div class="row">
+
+            <div class="col" style="padding:10px;">
+                <SfDropDownList Enabled="@AnoEnabled" AllowFiltering="true" @ref="@AnoElement" Text="Año" Placeholder="Año" TValue="int" TItem="int"
+                                DataSource="@Ano" @bind-Value="AnoValue">
+                    <DropDownListEvents TItem="int" TValue="int" ValueChange="GetAno"></DropDownListEvents>
+                </SfDropDownList>
+            </div>
+            <div class="col" style="padding:10px;">
+                <SfDropDownList Enabled="@PaisEnbaled" @ref="@PaisElement" TValue="string" TItem="string" DataSource="@Paises"
+                                @bind-Value="paisValue" Placeholder="Seleccione el pais">
+                    <DropDownListEvents TItem="string" TValue="string" ValueChange="GetDescripcion">
+                    </DropDownListEvents>
+                </SfDropDownList>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col" style="padding:10px;">
+                <SfNumericTextBox Currency="USD" TValue="double?" Placeholder="Valor Factura (USD$)-" @ref="@FacturaElement"
+                                  Format="c2"></SfNumericTextBox>
+            </div>
+            <div class="col" style="padding:10px;">
+                <SfNumericTextBox Currency="USD" TValue="double?" Placeholder="Felete (USD$)-" Format="c2" @ref="@FleteElement"></SfNumericTextBox>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col" style="padding:10px;">
+                <SfNumericTextBox Currency="USD" TValue="double?" Placeholder="Seguro (USD$)-" Format="c2" @ref="@SeguroElement"></SfNumericTextBox>
+            </div>
+            <div class="col" style="padding:10px;">
+                <SfNumericTextBox Currency="USD" TValue="double?" Placeholder="Otros (USD$)-" Format="c2" @ref="OtroElement"></SfNumericTextBox>
+            </div>
+        </div>
+        <div class="row" style="float:right; display:inline-block">
+            <div class="col">
+                <div class="div">
+                    <SfButton OnClick="Limpiar">Limpiar </SfButton>
+                    <SfButton  IsPrimary="true" OnClick="Calcular">Calcular</SfButton>
+                    <div>
+                    @* <SfSpinner Visible="@VisibleProperty" Type="@SpinnerType"></SfSpinner> *@
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @if (Resultados != null)
+        {
+            <ResultComponent Resultados=@res></ResultComponent>
+            }
+        else
+        {
+            <SfSpinner Visible="@VisibleProperty" Type="@SpinnerType"></SfSpinner>
+        }
+
+    </div>
+
+</div>
+<div>
+</div>
+@code {
+    public bool resultVisible = false;
+    private SpinnerType SpinnerType = SpinnerType.Fabric;
+    private bool VisibleProperty { get; set; } = false;
+    public string SerieValue { get; set; }
+    public IEnumerable<string> Marca { get; set; }
+    public IEnumerable<string> Modelo { get; set; }
+    public IEnumerable<string> Paises { get; set; }
+    public string MarcaValue { get; set; }
+    public bool EnableMarcaDropDown = false;
+    public bool EnableModeloDropdown = false;
+    public string ModeloValue { get; set; } = null;
+    public Query ModeloQuery { get; set; } = null;
+    public Query AnoQuery { get; set; } = null;
+    public IEnumerable<string> TipoAutomovil { get; set; }
+    public IEnumerable<int> Ano { get; set; }
+    public int AnoValue { get; set; }
+    public string paisValue { get; set; } = null;
+    public String Descripcion { get; set; } = null;
+    public IEnumerable<string> Descripciones { get; set; }
+    public bool ModeloEnabled { get; set; }
+    public bool AnoEnabled { get; set; }
+    public bool PaisEnbaled { get; set; }
+    public bool SerieEnabled { get; set; }
+    private SfDropDownList<string, string> MarcaElement;
+    private SfDropDownList<string, string> ModeloElement;
+    private SfDropDownList<int, int> AnoElement;
+    private SfDropDownList<string, string> PaisElement;
+    private SfDropDownList<string, string> SerieElement;
+    private SfTextBox SerieInputElement;
+    private CalculoObject Vehiculos;
+    public string nullvariable = null;
+    private SfNumericTextBox<double?> FacturaElement;
+    private SfNumericTextBox<double?> FleteElement;
+    private SfNumericTextBox<double?> SeguroElement;
+    private SfNumericTextBox<double?> OtroElement;
+    public ResultadosObject Resultados { get; set; }
+    public ResultadosObject res { get; set; }
+    public bool homeSpinner { get; set; } = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+
+        await GetMarcas();
+
+    }
+    public async Task<IEnumerable<string>> GetMarcas()
+    {
+
+
+        //return Marca = await Http.GetFromJsonAsync<IEnumerable<string>>("https://vehiculosapi.azurewebsites.net/Marcas");
+        return Marca = await Http.GetFromJsonAsync<IEnumerable<string>>("https://localhost:19123/Marcas");
+
+    }
+
+    public async void ChangeMarca()
+    {
+        if (MarcaValue != null)
+        {
+            Modelo = await
+            Http.GetFromJsonAsync<IEnumerable<string>>($"https://localhost:19123/Modelos/{MarcaValue}");
+            if (Modelo != null)
+            {
+                ModeloEnabled = true;
+            }
+        }
+
+        StateHasChanged();
+    }
+
+    public async void ChangeModelo()
+    {
+
+        if (ModeloValue != null)
+        {
+            TipoAutomovil = await
+        Http.GetFromJsonAsync<IEnumerable<string>>($"https://localhost:19123/TipoAutomovil/{ModeloValue}");
+            if (TipoAutomovil != null)
+            {
+                AnoEnabled = true;
+            }
+            GetAno();
+            GetPaises(ModeloValue);
+            StateHasChanged();
+        }
+    }
+
+    public async void ChangeTipoAutomovil()
+    {
+
+        TipoAutomovil = await
+        Http.GetFromJsonAsync<IEnumerable<string>>($"https://localhost:19123/TipoAutomovil/{ModeloValue}");
+        StateHasChanged();
+
+    }
+    public async Task<IEnumerable<string>> Modelos(string marca)
+    {
+        Modelo = await Http.GetFromJsonAsync<IEnumerable<string>>($"https://localhost:19123/Modelos/{marca}");
+        return Modelo;
+    }
+
+    public async void GetPaises(string modelo)
+    {
+        Paises = await Http.GetFromJsonAsync<IEnumerable<string>>($"https://localhost:19123/Pais/{ModeloValue}");
+        StateHasChanged();
+
+    }
+    public async void GetDescripcion()
+    {
+        if (paisValue != null && ModeloValue != null)
+        {
+            Descripciones = await
+        Http.GetFromJsonAsync<IEnumerable<string>>($"https://localhost:19123/Descripcion/{paisValue}/{ModeloValue}");
+            if (Descripciones != null)
+            {
+
+                SerieEnabled = true;
+            }
+            StateHasChanged();
+        }
+
+    }
+    public async void GetAno()
+    {
+
+        if (MarcaValue != null && ModeloValue != null)
+        {
+            Ano = await
+        Http.GetFromJsonAsync<IEnumerable<int>>($"https://localhost:19123/Ano/{MarcaValue}/{ModeloValue}");
+            if (Ano != null)
+            {
+                PaisEnbaled = true;
+            }
+            StateHasChanged();
+        }
+
+
+    }
+    public async void Limpiar()
+    {
+        this.VisibleProperty = true;
+        await Task.Delay(1000);
+        
+         this.MarcaElement.Clear();
+         this.ModeloElement.Clear();
+         this.AnoElement.Clear();
+         this.PaisElement.Clear();
+         
+        
+        this.VisibleProperty = false;
+        StateHasChanged();
+
+    }
+
+    public async Task<ResultadosObject>Calcular()
+    {
+        Vehiculos = new CalculoObject();
+        Resultados = new ResultadosObject();
+
+    //TODO: Hacer que el calculoobjeto llegue a resultadoobject y ghaga la operacion de la formula
+    https://www.aduanas.gob.do/de-interes/consultas/calculadora-de-impuestos-de-vehiculos/
+
+        if(Resultados ==null)
+        {
+            this.VisibleProperty = true;
+        }
+        this.VisibleProperty = false;
+        Vehiculos.Marca = this.MarcaElement.Value;
+        Vehiculos.Modelo = this.ModeloElement.Value;
+        Vehiculos.Ano = this.AnoElement.Value.ToString();
+        Vehiculos.Pais = this.PaisElement.Value;
+        Vehiculos.ValorFactura = this.FacturaElement.Value;
+        Vehiculos.Flete = this.FleteElement.Value;
+        Vehiculos.Seguro = this.SeguroElement.Value;
+        Vehiculos.Otros = this.OtroElement.Value;
+        //Vehiculos.EspecificacionDeProducto = this.SerieElement.Value;
+        // nullvariable = this.SerieInputElement.Value;
+        this.VisibleProperty = false;
+
+        StateHasChanged();
+
+        res = Resultados.Resultados(Vehiculos);
+
+        return res;
+    }
+    public async void spinnerDelay()
+    {
+
+
+        this.VisibleProperty = true;
+        await Task.Delay(3000);
+        this.VisibleProperty = false;
+    }
+    }

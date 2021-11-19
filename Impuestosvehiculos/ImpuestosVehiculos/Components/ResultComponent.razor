@@ -1,0 +1,54 @@
+﻿@using Services
+@inject Microsoft.JSInterop.IJSRuntime JS
+
+
+<SfDialog Target="#target" Width="600px" AllowDragging="true" IsModal="true" ShowCloseIcon="true" @bind-Visible="@IsVisible">
+    <DialogTemplates>
+        <Header> Desglose de Resultados </Header>
+        <Content>
+            <div>
+                <h1></h1>
+                <p>Tasa de Cambio DOP - @string.Format(new CultureInfo("en-US"), "{0:c}", Resultados.TasaDeCambio) </p>
+                <p>Impuesto Aduanal @string.Format(new CultureInfo("en-US"), "{0:c}", Resultados.ImpuestoAduanal)</p>
+                <p>ITBIS DOP - @string.Format(new CultureInfo("en-US"), "{0:c}", Resultados.ITBIS)</p>
+                <p>TOTAL USD - @string.Format(new CultureInfo("en-US"), "{0:c}", Resultados.Total)</p>
+            </div>
+
+        </Content>
+    </DialogTemplates>
+    <DialogButtons>
+        <DialogButton Content="Generar PDF" OnClick="@GenerarPDF"/>
+        <DialogButton Content="OK" IsPrimary="true" OnClick="@CloseDialog" />
+        <DialogButton Content="Cancel" OnClick="@CloseDialog" />
+    </DialogButtons>
+</SfDialog>
+
+@code {
+    [Parameter]
+    public ResultadosObject Resultados { get; set; }
+    public string TextoPDF { get; set; }
+    public string PDFName ;
+    string noteContent;
+    string fileName = "note.txt";
+    
+    private bool IsVisible { get; set; } = true;
+
+    private void OpenDialog()
+    {
+        this.IsVisible = true;
+    }
+
+    private void CloseDialog()
+    {
+        this.IsVisible = false;
+    }
+        public  async void GenerarPDF(MouseEventArgs args)
+    {
+        PDFService service = new PDFService();
+        MemoryStream documentStream = service.CreatePDF(Resultados);
+        await JS.SaveAs("Resultados.pdf",documentStream.ToArray());
+
+    }  
+}
+
+
